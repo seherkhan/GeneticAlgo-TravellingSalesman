@@ -1,0 +1,228 @@
+import string
+import random
+
+# Created by Seher Khan
+# This class represents the region the salesman is in.
+class RegionMap:
+    # Given the a matrix of distances, creates the region
+    def __init__(self,cities_weights):
+        self.num_cities = len(cities_weights)
+        self.cities = string.ascii_uppercase[0:len(cities_weights)]
+        self.cities_weights = cities_weights
+
+    # Computes distance between two cities (arg should be capital letters that represent the cities)
+    def dist(self,city1,city2):
+        city1_ind = self.cities.find(city1)
+        city2_ind = self.cities.find(city2)
+        return self.cities_weights[city1_ind][city2_ind]
+
+
+# This class represents a possible solution to the problem
+class Chromosome:
+    # Given a region, generates a random chromosome, with default fitness -1
+    def __init__(self, region_map):
+        self.chrome = random.sample(region_map.cities, region_map.num_cities)
+        self.town_map = region_map
+        self.fitness = 0
+
+    # Computes fitness of the chromosome by summing total distance of the path
+    # a lower fitness value, in this case, is better
+    def compute_fitness(self):
+        fitness = 0
+        for i in range(1, self.town_map.num_cities):
+            fitness = fitness+self.town_map.dist(self.chrome[i-1], self.chrome[i])
+        self.fitness = fitness
+
+    # String representation includes the chromosome string and the fitness of the solution
+    def __str__(self):
+        rep = ''
+        for city in self.chrome:
+            rep = rep + city
+        rep+" "+str(self.fitness)
+        return rep
+
+
+# This class contains all methods for running the Genetic Algorithm
+class GeneticAlgorithm:
+    # Create instance of this class given a region. Initially there are no members in population
+    def __init__(self, region_map):
+        self.town_map = region_map
+        self.pop_lst = []
+        self.pop_count = 0
+        self.best_so_far_lst = []
+        self.avg_best_lst = []
+
+    # This method runs the algorithm by calling several helper methods
+    # The algo will end by termination
+    # 1. generate initial pop
+    # 2. compute fitness of each chromosome in pop
+    # 3. for a certain number of generations
+    #  a. select parents
+    #  b. create offsprings
+    #  c. compute fitness of the offsprings
+    #  d. let certain number of population members survive for next generation
+    #  e. compute avg_best and best_so_far
+    def run(self,init_pop,num_offspring,end_pop,num_gene):
+        self.generate_pop(init_pop)
+        for c in self.pop_lst:
+            c.compute_fitness()
+        for j in range(num_gene):
+            print("Generation: ", (j+1))
+            print(GA)
+            for i in range(num_offspring//2):
+                self.create_two_offspring(self.parent_pair())
+                self.pop_lst[len(self.pop_lst)-2].compute_fitness()
+                self.pop_lst[len(self.pop_lst)-1].compute_fitness()
+            self.survivor_select(end_pop)
+            self.stats()
+
+    # Prints the best so far and avg so far statistics
+    def print_stats(self):
+        print("gene.,","best_so_far,","avg_best")
+        for i in range(num_gene):
+            print((i+1),",",self.best_so_far_lst[i],",",self.avg_best_lst[i])
+
+    # This string representation includes all members of the GA's population and their fitness values
+    def __str__(self):
+        string_rep = ''
+        for chromosome in self.pop_lst:
+            string_rep = string_rep + chromosome.__str__()+'  '+str(chromosome.fitness)+'\n'
+        return string_rep
+
+    # Generate a given number of random solutions
+    def generate_pop(self,pop_count):
+        for i in range(0,pop_count):
+            self.pop_lst.append(Chromosome(self.town_map))
+        self.pop_count=pop_count
+
+    # Select a pair of parents. Use binary tournament to select each parent.
+    def parent_pair(self):
+        # select parent1
+        parent1_1 = self.pop_lst[random.choice(range(0, self.pop_count))]
+        parent1_2 = self.pop_lst[random.choice(range(0, self.pop_count))]
+        if parent1_1.fitness > parent1_2.fitness:
+            parent1 = parent1_1
+        else:
+            parent1 = parent1_2
+
+        # select parent2
+        parent2_1 = self.pop_lst[random.choice(range(0, self.pop_count))]
+        parent2_2 = self.pop_lst[random.choice(range(0, self.pop_count))]
+        if parent2_1.fitness > parent2_2.fitness:
+            parent2=parent2_1
+        else:
+            parent2=parent2_2
+
+        return [parent1, parent2]
+
+    # Create two offsprings from a given pair of parents using crossover and mutation (swap)
+    def create_two_offspring(self,parent_pair):
+        child1 = Chromosome(self.town_map)
+        child1.chrome=[]
+        child2 = Chromosome(self.town_map)
+        child2.chrome=[]
+
+        # crossover
+        ind1 = random.choice(range(0, self.town_map.num_cities))
+        ind2 = random.choice(range(0, self.town_map.num_cities))
+
+        if ind1 > ind2:
+            temp = ind1
+            ind1 = ind2
+            ind2 = temp
+
+        child1.chrome.extend(parent_pair[0].chrome[ind1:ind2+1])
+        child2.chrome.extend(parent_pair[1].chrome[ind1:ind2+1])
+
+        x1 = (ind2+1) % self.town_map.num_cities
+        y2 = (ind2+1) % self.town_map.num_cities
+        while True:
+            if x1 == ind1:
+                break
+            if not child1.chrome.__contains__(parent_pair[1].chrome[y2]):
+                child1.chrome.insert(x1,parent_pair[1].chrome[y2])
+                x1 = (x1+1) % self.town_map.num_cities
+                y2 = (y2+1) % self.town_map.num_cities
+            else:
+                y2 = (y2+1) % self.town_map.num_cities
+
+        x2 = (ind2+1) % self.town_map.num_cities
+        y1 = (ind2+1) % self.town_map.num_cities
+
+        while True:
+            if x2 == ind1:
+                break
+            if not child2.chrome.__contains__(parent_pair[0].chrome[y1]):
+                child2.chrome.insert(x2,parent_pair[0].chrome[y1])
+                x2 = (x2+1) % self.town_map.num_cities
+                y1 = (y1+1) % self.town_map.num_cities
+            else:
+                y1 = (y1+1) % self.town_map.num_cities
+
+        # mutation (swap)
+        ind1 = random.choice(range(0, self.town_map.num_cities))
+        ind2 = random.choice(range(0, self.town_map.num_cities))
+        temp = child1.chrome[ind1]
+        child1.chrome[ind1] = child1.chrome[ind2]
+        child1.chrome[ind2] = temp
+
+        ind1 = random.choice(range(0, self.town_map.num_cities))
+        ind2 = random.choice(range(0, self.town_map.num_cities))
+        temp = child2.chrome[ind1]
+        child2.chrome[ind1] = child2.chrome[ind2]
+        child2.chrome[ind2] = temp
+
+        self.pop_lst.append(child1)
+        self.pop_lst.append(child2)
+        self.pop_count = self.pop_count + 2
+
+    # Given the number of required survivors, use termination to cut down population
+    def survivor_select(self, num):
+        for j in range(self.pop_count-num):
+            max_ind = 0
+            for i in range(self.pop_count):
+                if self.pop_lst[i].fitness > self.pop_lst[max_ind].fitness:
+                    max_ind = i
+            self.pop_lst.pop(max_ind)
+            self.pop_count = self.pop_count - 1
+
+    # Compute best_so_far and avg_so_far
+    def stats(self):
+        min_ind = 0
+        fit_sum = 0
+        for i in range(self.pop_count):
+            if self.pop_lst[i].fitness < self.pop_lst[min_ind].fitness:
+                min_ind = i
+            fit_sum = fit_sum + self.pop_lst[i].fitness
+        self.best_so_far_lst.append(self.pop_lst[min_ind].fitness)
+        self.avg_best_lst.append(fit_sum/self.pop_count)
+
+
+# Data of distance:
+#             A   B   C   D   E   F   G   H   I   J
+distances = [[0,  1,  3,  1,  4,  1,  3,  6,  4,  5],
+             [1,  0,  5,  1,  11, 4,  3,  6,  1,  3],
+             [3,  5,  0,  8,  7,  1,  5,  12, 5,  3],
+             [1,  1,  8,  0,  9,  11, 1,  4,  5,  2],
+             [4,  11, 7,  9,  0,  5,  17, 3,  1,  1],
+             [1,  4,  1,  11, 5,  0,  4,  1,  5,  10],
+             [3,  3,  5,  1,  17, 4,  0,  7,  4,  1],
+             [6,  6,  12, 4,  3,  1,  7,  0,  1,  1],
+             [4,  1,  5,  5,  1,  5,  4,  1,  0,  3],
+             [5,  3,  2,  2,  1,  10, 1,  1,  3,  0]]
+
+# Create map
+r_map = RegionMap(distances)
+
+# Instantiate algo class
+GA = GeneticAlgorithm(r_map)
+init_pop = 10 # initial population
+num_offspring = 10 # number of offsprings to create for each generation
+end_pop = 10 # population to retain during survior selection
+num_gene = 50 # number of generations
+
+# Run algo
+GA.run(init_pop, num_offspring,end_pop, num_gene)
+
+# Print best so far and avg so far stats
+GA.print_stats()
